@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro MeetUp</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎫 Registro MeetUp</h1>
+            <p>Genera tu badge de identificación</p>
+        </header>
+
+        <div id="scanPrompt" class="scan-prompt">
+            <div class="qr-icon">📱</div>
+            <h2>Escanea tu QR</h2>
+            <p>Usa el QR de tu perfil de AWS Builder Community</p>
+            <p class="small">O ingresa tu URL manualmente:</p>
+            <div class="manual-input">
+                <input type="text" id="profileUrlInput" placeholder="https://builder.aws.com/community/@username">
+                <button id="loadProfileBtn" class="btn-primary">Cargar Perfil</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Obteniendo datos de tu perfil...</p>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+
+        <form id="badgeForm" class="hidden">
+            <div class="form-group">
+                <label for="username">Username AWS Builder</label>
+                <input type="text" id="username" name="username" readonly>
+            </div>
+
+            <div class="form-group">
+                <label for="fullName">Nombre Completo *</label>
+                <input type="text" id="fullName" name="fullName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="company">Empresa/Organización</label>
+                <input type="text" id="company" name="company">
+            </div>
+
+            <div class="form-group">
+                <label for="role">Rol/Título</label>
+                <input type="text" id="role" name="role">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="bio">Bio</label>
+                <textarea id="bio" name="bio" rows="3"></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-primary">
+                Generar Badge
+            </button>
+        </form>
+
+        <div id="success" class="success hidden">
+            <h2>✅ Badge Generado</h2>
+            <p>Tu badge está listo para imprimir</p>
+            <a id="downloadLink" href="#" class="btn-primary" download>
+                Descargar Badge (PDF)
+            </a>
+            <button id="printBtn" class="btn-secondary">
+                Imprimir Ahora
+            </button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

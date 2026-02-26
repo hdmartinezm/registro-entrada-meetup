@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estación de Registro - MeetUp</title>
+    <link rel="stylesheet" href="station-styles.css?v=3">
+</head>
+<body>
+    <div class="station-container">
+        <header>
+            <h1>🎫 Estación de Registro</h1>
+            <p>Registro MeetUp</p>
+
+            <!-- Banner de evento activo -->
+            <div id="eventBanner" class="event-banner hidden">
+                <div class="event-banner-info">
+                    <span class="event-label">Evento activo:</span>
+                    <strong id="bannerEventName">—</strong>
+                    <span id="bannerEventVenue"></span>
+                    <span id="bannerEventDate"></span>
+                </div>
+                <div class="event-banner-actions">
+                    <button id="endEventBtn" class="btn-event btn-end-event" onclick="endEvent()">Terminar Evento</button>
+                    <button id="reportBtn" class="btn-event btn-report" onclick="openReportModal()">Ver Reporte</button>
+                </div>
+            </div>
+            <div id="noEventBanner" class="no-event-banner">
+                <span>Sin evento activo</span>
+                <button id="createEventBtn" class="btn-event btn-create-event" onclick="openCreateEventModal()">+ Crear Evento</button>
+            </div>
+        </header>
+
+        <!-- Modal: Crear Evento -->
+        <div id="createEventModal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h2>Crear Nuevo Evento</h2>
+                <div class="modal-field">
+                    <label for="eventName">Nombre del evento</label>
+                    <input type="text" id="eventName" placeholder="Ej: MeetUp Febrero 2026">
+                </div>
+                <div class="modal-field">
+                    <label for="eventVenue">Venue</label>
+                    <input type="text" id="eventVenue" placeholder="Ej: WeWork Monterrey">
+                </div>
+                <div class="modal-field">
+                    <label for="eventDate">Fecha</label>
+                    <input type="date" id="eventDate">
+                </div>
+                <div class="modal-actions">
+                    <button id="cancelCreateEventBtn" class="btn-secondary" onclick="closeCreateEventModal()">Cancelar</button>
+                    <button id="confirmCreateEventBtn" class="btn-primary" onclick="submitCreateEvent()">Crear Evento</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Reporte de Asistentes -->
+        <div id="reportModal" class="modal-overlay hidden">
+            <div class="modal-box modal-wide">
+                <h2>Reporte de Asistentes</h2>
+                <p id="reportEventTitle" class="report-event-title"></p>
+                <p id="reportCount" class="report-count"></p>
+                <div class="report-table-wrapper">
+                    <table id="reportTable" class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Empresa</th>
+                                <th>Rol</th>
+                                <th>Email</th>
+                                <th>Username</th>
+                                <th>Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="modal-actions report-email-row">
+                    <button id="downloadCsvBtn" class="btn-primary" onclick="downloadCSV()">Descargar CSV</button>
+                    <input type="email" id="reportEmail" placeholder="correo@ejemplo.com" class="report-email-input">
+                    <button id="sendReportEmailBtn" class="btn-secondary" onclick="sendReportByEmail()">Enviar por Email</button>
+                    <button id="closeReportBtn" class="btn-secondary" onclick="closeReportModal()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado: Esperando escaneo -->
+        <div id="scanWaiting" class="scan-waiting">
+            <div class="qr-scanner-icon">📱</div>
+            <h2>Escanea el QR del asistente</h2>
+            <p>Usa el lector de QR o la cámara del dispositivo</p>
+            
+            <button id="startCameraBtn" class="btn-camera">
+                📷 Usar Cámara
+            </button>
+            
+            <div id="cameraContainer" class="camera-container hidden">
+                <div id="qrReader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
+                <button id="stopCameraBtn" class="btn-secondary">Cerrar Cámara</button>
+            </div>
+
+            <div class="manual-option">
+                <p>O ingresa el username manualmente:</p>
+                <input type="text" id="manualUrl" placeholder="@username o username">
+                <button id="manualSubmitBtn" class="btn-primary">Procesar</button>
+            </div>
+        </div>
+
+        <!-- Estado: Procesando -->
+        <div id="processing" class="processing hidden">
+            <div class="spinner-large"></div>
+            <h2>Procesando...</h2>
+            <p id="processingStatus">Extrayendo datos del perfil</p>
+            <div class="progress-steps">
+                <div class="step" id="step1">
+                    <span class="step-icon">⏳</span>
+                    <span>Leyendo perfil</span>
+                </div>
+                <div class="step" id="step2">
+                    <span class="step-icon">⏳</span>
+                    <span>Generando badge</span>
+                </div>
+                <div class="step" id="step3">
+                    <span class="step-icon">⏳</span>
+                    <span>Enviando a impresora</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado: Confirmación de Datos (oculto - ya no se usa) -->
+        <div id="confirmData" class="confirm-data hidden">
+            <h2>Generando Badge...</h2>
+            <div class="spinner-large"></div>
+        </div>
+
+        <!-- Estado: Éxito -->
+        <div id="success" class="success-screen hidden">
+            <div class="success-icon">✅</div>
+            <h2>¡Badge Generado!</h2>
+            <div class="attendee-info">
+                <h3 id="attendeeName"></h3>
+                <p id="attendeeCompany"></p>
+                <p id="attendeeUsername"></p>
+            </div>
+            <div class="badge-preview">
+                <p>Badge enviado a impresora</p>
+                <p class="print-queue">Cola de impresión: <span id="queuePosition">1</span></p>
+            </div>
+            <button id="nextAttendeeBtn" class="btn-next">
+                Siguiente Asistente →
+            </button>
+            <a id="downloadBadgeBtn" href="#" class="btn-secondary" download>
+                Descargar PDF (Backup)
+            </a>
+        </div>
+
+        <!-- Estado: Error -->
+        <div id="error" class="error-screen hidden">
+            <div class="error-icon">❌</div>
+            <h2>Error al Procesar</h2>
+            <p id="errorMessage"></p>
+            <button id="retryBtn" class="btn-primary">Reintentar</button>
+            <button id="manualEntryBtn" class="btn-secondary">Entrada Manual</button>
+        </div>
+
+        <!-- Estadísticas del día -->
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-number" id="totalBadges">0</span>
+                <span class="stat-label">Badges Generados</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="lastHour">0</span>
+                <span class="stat-label">Este Evento</span>
+            </div>
+            <div class="stat-item">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" id="autoPrintToggle" checked>
+                    <span style="font-size: 12px;">Impresión Auto</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librería para escaneo de QR -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="station-app.js?v=8"></script>
+</body>
+</html>

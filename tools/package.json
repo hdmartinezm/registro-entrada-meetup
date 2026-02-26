@@ -1,0 +1,12 @@
+{
+  "name": "meetup-tools",
+  "version": "1.0.0",
+  "description": "Herramientas para gestión del sistema de registro",
+  "scripts": {
+    "preload": "node preload-profiles.js"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1500.0",
+    "uuid": "^9.0.1"
+  }
+}

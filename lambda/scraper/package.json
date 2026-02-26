@@ -1,0 +1,10 @@
+{
+  "name": "profile-scraper",
+  "version": "1.0.0",
+  "description": "Lambda function to extract AWS Builder profile data with Puppeteer",
+  "main": "index.js",
+  "dependencies": {
+    "@sparticuz/chromium": "^119.0.2",
+    "puppeteer-core": "^21.5.2"
+  }
+}

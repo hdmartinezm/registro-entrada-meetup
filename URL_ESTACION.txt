@@ -1,0 +1,70 @@
+═══════════════════════════════════════════════════════════
+   SISTEMA DE REGISTRO MEETUP - URL DE LA ESTACIÓN
+═══════════════════════════════════════════════════════════
+
+🎫 URL PRINCIPAL (HTTPS - Usar esta):
+https://d2l8hbgwgeo97f.cloudfront.net/registration-station.html
+
+📱 Funciona en:
+   ✅ Celulares (iOS y Android)
+   ✅ Tablets
+   ✅ Computadoras
+   ✅ Cualquier navegador moderno
+
+🔧 Características:
+   ✅ HTTPS seguro
+   ✅ Cámara funciona
+   ✅ Entrada manual disponible
+   ✅ Generación automática de badges
+
+═══════════════════════════════════════════════════════════
+
+📋 INSTRUCCIONES RÁPIDAS:
+
+1. Abre la URL en tu dispositivo
+2. Opciones para registrar:
+   
+   A) Con cámara:
+      - Click en "📷 Usar Cámara"
+      - Permite acceso a la cámara
+      - Escanea el QR del asistente
+   
+   B) Manual:
+      - Ingresa: https://builder.aws.com/community/@username
+      - Click en "Procesar"
+
+3. Badge se genera automáticamente
+4. Descarga e imprime el PDF
+
+═══════════════════════════════════════════════════════════
+
+🔗 RECURSOS:
+
+API Gateway:
+https://c9h8ur30w6.execute-api.us-east-1.amazonaws.com/prod
+
+Bucket de Badges:
+registro-meetup-badges
+
+Tabla DynamoDB:
+registro-meetup-attendees
+
+═══════════════════════════════════════════════════════════
+
+💡 TIPS:
+
+- Guarda esta URL en favoritos
+- Compártela con el equipo del evento
+- Prueba antes del evento
+- Ten backup manual por si falla internet
+
+═══════════════════════════════════════════════════════════
+
+📞 SOPORTE:
+
+Si tienes problemas:
+1. Revisa COMO_USAR.md
+2. Verifica logs en CloudWatch
+3. Usa entrada manual como backup
+
+═══════════════════════════════════════════════════════════

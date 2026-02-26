@@ -1,0 +1,21 @@
+node_modules/
+.aws-sam/
+*.log
+.DS_Store
+*.bak
+
+# Lambda packages
+lambda/*/node_modules/
+lambda/*/.aws-sam/
+
+# Environment files
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+
+# SAM
+.aws-sam/
+samconfig.toml

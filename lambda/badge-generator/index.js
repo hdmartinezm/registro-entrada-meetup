@@ -17,8 +17,8 @@ const PRINT_QUEUE_URL = process.env.PRINT_QUEUE_URL;
 const BADGE_THEMES = {
     'aws-ug': {
         headerText: 'AWS User Group Monterrey',
-        showLogo: false,
-        logoPath: null
+        showLogo: true,
+        logoPath: path.join(__dirname, 'assets', 'logo-aws-ug.png')
     },
     'the-guild-it': {
         headerText: 'The Guild IT MTY',
@@ -343,9 +343,9 @@ async function generateBadgePDF({ fullName, company, role, username, badgeId, ev
 
         // Columna derecha - Logo del evento (si aplica)
         if (logoBuffer && theme.showLogo) {
-            const logoSize = 70;
-            const logoX = rightColumnX + 5;
-            const logoY = contentStartY + 10;
+            const logoSize = 90;
+            const logoX = rightColumnX - 5;
+            const logoY = contentStartY;
 
             try {
                 doc.image(logoBuffer, logoX, logoY, {

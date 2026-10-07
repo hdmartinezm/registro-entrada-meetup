@@ -1,0 +1,12 @@
+{
+  "name": "attendee-import",
+  "version": "1.0.0",
+  "description": "Importar lista de asistentes desde Meetup.com y Eventbrite",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1472.0",
+    "node-fetch": "^2.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^9.0.0"
+  }
+}

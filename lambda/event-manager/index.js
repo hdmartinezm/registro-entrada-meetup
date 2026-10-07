@@ -65,10 +65,10 @@ exports.handler = async (event) => {
 
 async function createEvent(event) {
     const body = JSON.parse(event.body || '{}');
-    const { name, venue, date } = body;
+    const { name, venue, date, eventType } = body;
 
-    if (!name || !venue || !date) {
-        return response(400, { error: 'name, venue y date son requeridos' });
+    if (!name || !venue || !date || !eventType) {
+        return response(400, { error: 'name, venue, date y eventType son requeridos' });
     }
 
     // Verificar que no haya otro evento activo
@@ -94,6 +94,7 @@ async function createEvent(event) {
         name,
         venue,
         date,
+        eventType,
         status: 'active',
         createdAt: now
     };

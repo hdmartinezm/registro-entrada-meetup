@@ -184,11 +184,14 @@ Resources:
       Environment:
         Variables:
           PRINT_QUEUE_URL: !Ref PrintQueue
+          EVENTS_TABLE: !Ref EventsTable
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref BadgeBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref AttendeesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref EventsTable
         - SQSSendMessagePolicy:
             QueueName: !GetAtt PrintQueue.QueueName
       Events:
@@ -309,6 +312,68 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /events/{eventId}/send-report
+            Method: POST
+
+  # Lambda: Attendee Import (Meetup + Eventbrite)
+  AttendeeImportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-attendee-import'
+      CodeUri: ../lambda/attendee-import/
+      Handler: index.handler
+      Timeout: 60
+      MemorySize: 512
+      Environment:
+        Variables:
+          EVENTS_TABLE: !Ref EventsTable
+          ATTENDEES_TABLE: !Ref AttendeesTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EventsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AttendeesTable
+      Events:
+        ImportMeetup:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /import/meetup
+            Method: POST
+        ImportMeetupManual:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /import/meetup-manual
+            Method: POST
+        ImportEventbrite:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /import/eventbrite
+            Method: POST
+        ImportStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /import/status/{eventId}
+            Method: GET
+        ImportPreregistered:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /import/preregistered/{eventId}
+            Method: GET
+        ImportCheckin:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /import/checkin
+            Method: POST
+        ImportCSV:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /import/csv
             Method: POST
 
   # SQS Queue para cola de impresión

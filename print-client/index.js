@@ -13,8 +13,13 @@ const QUEUE_URL = process.env.PRINT_QUEUE_URL;
 const PRINTER_NAME = process.env.PRINTER_NAME || 'Ribetec_RT_420ME';
 const POLL_INTERVAL = process.env.POLL_INTERVAL || 2000; // 2 segundos
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+const AWS_PROFILE = process.env.AWS_PROFILE;
 
 // Configurar AWS
+if (AWS_PROFILE) {
+    const credentials = new AWS.SharedIniFileCredentials({ profile: AWS_PROFILE });
+    AWS.config.credentials = credentials;
+}
 AWS.config.update({ region: AWS_REGION });
 const sqs = new AWS.SQS();
 
@@ -23,6 +28,7 @@ console.log('=====================================');
 console.log(`Cola SQS: ${QUEUE_URL}`);
 console.log(`Impresora: ${PRINTER_NAME}`);
 console.log(`Región: ${AWS_REGION}`);
+console.log(`Perfil AWS: ${AWS_PROFILE || 'default'}`);
 console.log('=====================================\n');
 
 // Directorio temporal para PDFs

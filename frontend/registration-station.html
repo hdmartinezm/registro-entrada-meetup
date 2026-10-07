@@ -21,6 +21,7 @@
                     <span id="bannerEventDate"></span>
                 </div>
                 <div class="event-banner-actions">
+                    <button class="btn-event btn-import-list" onclick="openImportModal()">📋 Importar Lista</button>
                     <button id="endEventBtn" class="btn-event btn-end-event" onclick="endEvent()">Terminar Evento</button>
                     <button id="reportBtn" class="btn-event btn-report" onclick="openReportModal()">Ver Reporte</button>
                 </div>
@@ -47,9 +48,128 @@
                     <label for="eventDate">Fecha</label>
                     <input type="date" id="eventDate">
                 </div>
+                <div class="modal-field">
+                    <label for="eventType">Tipo de Evento</label>
+                    <select id="eventType">
+                        <option value="aws-ug">AWS User Group</option>
+                        <option value="the-guild-it">The Guild IT</option>
+                    </select>
+                </div>
                 <div class="modal-actions">
                     <button id="cancelCreateEventBtn" class="btn-secondary" onclick="closeCreateEventModal()">Cancelar</button>
                     <button id="confirmCreateEventBtn" class="btn-primary" onclick="submitCreateEvent()">Crear Evento</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Importar Asistentes -->
+        <div id="importModal" class="modal-overlay hidden">
+            <div class="modal-box modal-wide">
+                <h2>📋 Importar Lista de Asistentes</h2>
+                <p class="import-subtitle" id="importSubtitle">Importa la lista de pre-registrados</p>
+
+                <!-- Tabs para AWS UG (Meetup/Eventbrite) -->
+                <div class="import-tabs" id="importTabsAwsUg">
+                    <button class="import-tab active" onclick="switchImportTab('meetup')">
+                        <span class="tab-icon">🟥</span> Meetup.com
+                    </button>
+                    <button class="import-tab" onclick="switchImportTab('eventbrite')">
+                        <span class="tab-icon">🟧</span> Eventbrite
+                    </button>
+                </div>
+
+                <!-- Tabs para The Guild IT (CSV) -->
+                <div class="import-tabs hidden" id="importTabsGuildIt">
+                    <button class="import-tab active" onclick="switchImportTab('csv')">
+                        <span class="tab-icon">📄</span> Archivo CSV
+                    </button>
+                </div>
+
+                <!-- Tab: CSV -->
+                <div id="importTabCsv" class="import-tab-content">
+                    <div class="modal-field">
+                        <label for="csvFile">Archivo CSV</label>
+                        <input type="file" id="csvFile" accept=".csv,.txt">
+                        <small>Formato esperado: Nombre, Email, Empresa, Role (con o sin encabezados)</small>
+                    </div>
+                    <div class="csv-preview hidden" id="csvPreview">
+                        <p><strong>Vista previa:</strong> <span id="csvPreviewCount">0</span> registros detectados</p>
+                        <div class="csv-preview-table" id="csvPreviewTable"></div>
+                    </div>
+                    <button class="btn-primary btn-import" onclick="executeImport('csv')">
+                        📄 Importar desde CSV
+                    </button>
+                </div>
+
+                <!-- Tab: Meetup -->
+                <div id="importTabMeetup" class="import-tab-content hidden">
+                    <div class="modal-field">
+                        <label for="meetupEventUrl">URL del evento en Meetup</label>
+                        <input type="text" id="meetupEventUrl" placeholder="https://www.meetup.com/tu-grupo/events/123456789/">
+                        <small>Ejemplo: https://www.meetup.com/aws-user-group-monterrey/events/301234567/</small>
+                    </div>
+                    <div class="modal-field">
+                        <label for="meetupToken">Access Token de Meetup</label>
+                        <input type="password" id="meetupToken" placeholder="Tu OAuth token de Meetup">
+                        <small>
+                            Obtén tu token en: 
+                            <a href="https://www.meetup.com/api/oauth/list/" target="_blank">meetup.com/api/oauth/list</a>
+                            — Necesitas crear un OAuth Client
+                        </small>
+                    </div>
+                    <button class="btn-primary btn-import" onclick="executeImport('meetup')">
+                        🔄 Importar desde Meetup
+                    </button>
+                </div>
+
+                <!-- Tab: Eventbrite -->
+                <div id="importTabEventbrite" class="import-tab-content hidden">
+                    <div class="modal-field">
+                        <label for="eventbriteEventUrl">URL del evento en Eventbrite</label>
+                        <input type="text" id="eventbriteEventUrl" placeholder="https://www.eventbrite.com/e/nombre-evento-tickets-123456789">
+                        <small>Ejemplo: https://www.eventbrite.com.mx/e/aws-meetup-mty-tickets-987654321</small>
+                    </div>
+                    <div class="modal-field">
+                        <label for="eventbriteToken">API Token de Eventbrite</label>
+                        <input type="password" id="eventbriteToken" placeholder="Tu Private Token de Eventbrite">
+                        <small>
+                            Obtén tu token en: 
+                            <a href="https://www.eventbrite.com/platform/api-keys" target="_blank">eventbrite.com/platform/api-keys</a>
+                            — Usa tu "Private token"
+                        </small>
+                    </div>
+                    <button class="btn-primary btn-import" onclick="executeImport('eventbrite')">
+                        🔄 Importar desde Eventbrite
+                    </button>
+                </div>
+
+                <!-- Resultado de importación -->
+                <div id="importResult" class="import-result hidden">
+                    <div id="importResultContent"></div>
+                </div>
+
+                <!-- Lista de pre-registrados -->
+                <div id="preregisteredList" class="preregistered-list hidden">
+                    <h3>Pre-registrados importados</h3>
+                    <div id="preregisteredStats" class="preregistered-stats"></div>
+                    <div class="report-table-wrapper">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Empresa</th>
+                                    <th>Fuente</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preregisteredTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeImportModal()">Cerrar</button>
                 </div>
             </div>
         </div>

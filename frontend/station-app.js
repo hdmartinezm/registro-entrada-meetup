@@ -145,20 +145,78 @@ async function processProfile(profileUrl) {
     }
 
     showState('processing');
-    document.getElementById('processingStatus').textContent = 'Extrayendo datos del perfil...';
+    document.getElementById('processingStatus').textContent = 'Buscando asistente...';
     updateProcessStep(1, 'active');
-    
+
     try {
-        // Paso 1: Extraer datos del perfil
+        // Para eventos The Guild IT (CSV), buscar primero en pre-registrados
+        if (activeEventData && activeEventData.eventType === 'the-guild-it') {
+            const searchTerm = profileUrl.replace(/^@/, '').trim();
+            const preregistered = await findPreregisteredByName(searchTerm);
+
+            if (preregistered) {
+                updateProcessStep(1, 'completed');
+                // Usar datos del pre-registrado directamente
+                const profileData = {
+                    fullName: preregistered.fullName,
+                    company: preregistered.company || '',
+                    role: preregistered.role || '',
+                    email: preregistered.email || '',
+                    username: ''
+                };
+                await generateBadgeAutomatically(profileData);
+                return;
+            } else {
+                // No encontrado en pre-registrados, permitir entrada manual
+                const profileData = {
+                    fullName: searchTerm,
+                    company: '',
+                    role: '',
+                    email: '',
+                    username: ''
+                };
+                updateProcessStep(1, 'completed');
+                await generateBadgeAutomatically(profileData);
+                return;
+            }
+        }
+
+        // Para AWS UG, usar el flujo normal de scraping
+        document.getElementById('processingStatus').textContent = 'Extrayendo datos del perfil...';
         const profileData = await fetchProfileData(profileUrl);
         updateProcessStep(1, 'completed');
-        
+
         // Generar badge automáticamente sin confirmación
         await generateBadgeAutomatically(profileData);
-        
+
     } catch (error) {
         console.error('Error al procesar:', error);
         showError(error.message || 'Error al procesar el perfil');
+    }
+}
+
+// Buscar pre-registrado por nombre
+async function findPreregisteredByName(searchTerm) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/import/preregistered/${activeEventId}`);
+        const data = await response.json();
+
+        if (!data.attendees || data.attendees.length === 0) {
+            return null;
+        }
+
+        // Buscar coincidencia exacta o parcial (case insensitive)
+        const searchLower = searchTerm.toLowerCase();
+        const found = data.attendees.find(a =>
+            a.fullName.toLowerCase() === searchLower ||
+            a.fullName.toLowerCase().includes(searchLower) ||
+            (a.email && a.email.toLowerCase().includes(searchLower))
+        );
+
+        return found || null;
+    } catch (error) {
+        console.error('Error buscando pre-registrado:', error);
+        return null;
     }
 }
 
@@ -323,18 +381,21 @@ stopCameraBtn.addEventListener('click', stopCamera);
 manualSubmitBtn.addEventListener('click', () => {
     let input = manualUrl.value.trim();
     if (input) {
-        // Si es solo el username (con o sin @), construir la URL completa
-        if (!input.startsWith('http')) {
-            // Remover @ si existe
-            if (input.startsWith('@')) {
-                input = input.substring(1);
+        // Para The Guild IT, pasar el nombre directamente
+        if (activeEventData && activeEventData.eventType === 'the-guild-it') {
+            processProfile(input);
+        } else {
+            // Para AWS UG, construir URL si es solo username
+            if (!input.startsWith('http')) {
+                if (input.startsWith('@')) {
+                    input = input.substring(1);
+                }
+                input = `https://builder.aws.com/community/@${input}`;
             }
-            // Construir URL completa
-            input = `https://builder.aws.com/community/@${input}`;
+            processProfile(input);
         }
-        processProfile(input);
     } else {
-        alert('Por favor ingresa un username válido');
+        alert('Por favor ingresa un nombre válido');
     }
 });
 
@@ -392,6 +453,7 @@ async function loadStats() {
 function updateEventBanner(event) {
     const banner = document.getElementById('eventBanner');
     const noBanner = document.getElementById('noEventBanner');
+    const manualInput = document.getElementById('manualUrl');
 
     if (event) {
         activeEventId = event.eventId;
@@ -401,6 +463,13 @@ function updateEventBanner(event) {
         document.getElementById('bannerEventDate').textContent = `— ${event.date}`;
         banner.classList.remove('hidden');
         noBanner.classList.add('hidden');
+
+        // Actualizar placeholder según tipo de evento
+        if (event.eventType === 'the-guild-it') {
+            manualInput.placeholder = 'Nombre del asistente';
+        } else {
+            manualInput.placeholder = '@username o username';
+        }
     } else {
         activeEventId = null;
         activeEventData = null;
@@ -408,6 +477,7 @@ function updateEventBanner(event) {
         document.getElementById('lastHour').textContent = '0';
         banner.classList.add('hidden');
         noBanner.classList.remove('hidden');
+        manualInput.placeholder = '@username o username';
     }
 }
 
@@ -450,8 +520,9 @@ async function submitCreateEvent() {
     const name = document.getElementById('eventName').value.trim();
     const venue = document.getElementById('eventVenue').value.trim();
     const date = document.getElementById('eventDate').value;
+    const eventType = document.getElementById('eventType').value;
 
-    if (!name || !venue || !date) {
+    if (!name || !venue || !date || !eventType) {
         alert('Por favor completa todos los campos.');
         return;
     }
@@ -460,7 +531,7 @@ async function submitCreateEvent() {
         const response = await fetch(`${API_BASE_URL}/events`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, venue, date })
+            body: JSON.stringify({ name, venue, date, eventType })
         });
 
         const data = await response.json();
@@ -657,3 +728,368 @@ async function sendReportByEmail() {
 loadStats();
 loadActiveEvent();
 showState('scanWaiting');
+
+
+// ─── Importación de Asistentes (Meetup / Eventbrite) ──────────────────────────
+
+function openImportModal() {
+    if (!activeEventId) {
+        alert('Primero crea un evento activo para poder importar asistentes.');
+        return;
+    }
+    document.getElementById('importModal').classList.remove('hidden');
+    document.getElementById('importResult').classList.add('hidden');
+
+    // Mostrar tabs según tipo de evento
+    const isGuildIt = activeEventData && activeEventData.eventType === 'the-guild-it';
+    document.getElementById('importTabsAwsUg').classList.toggle('hidden', isGuildIt);
+    document.getElementById('importTabsGuildIt').classList.toggle('hidden', !isGuildIt);
+
+    // Ocultar todos los contenidos de tabs
+    document.querySelectorAll('.import-tab-content').forEach(c => c.classList.add('hidden'));
+
+    // Mostrar tab por defecto según tipo
+    if (isGuildIt) {
+        document.getElementById('importTabCsv').classList.remove('hidden');
+        document.getElementById('importSubtitle').textContent = 'Importa la lista de asistentes desde un archivo CSV';
+    } else {
+        document.getElementById('importTabMeetup').classList.remove('hidden');
+        document.getElementById('importSubtitle').textContent = 'Importa la lista de pre-registrados desde Meetup.com o Eventbrite';
+    }
+
+    // Cargar pre-registrados existentes
+    loadPreregistered();
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').classList.add('hidden');
+}
+
+function switchImportTab(tab) {
+    // Actualizar tabs activos en ambos grupos
+    document.querySelectorAll('.import-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.import-tab-content').forEach(c => c.classList.add('hidden'));
+
+    if (tab === 'csv') {
+        document.querySelector('#importTabsGuildIt .import-tab').classList.add('active');
+        document.getElementById('importTabCsv').classList.remove('hidden');
+    } else if (tab === 'meetup') {
+        document.querySelectorAll('#importTabsAwsUg .import-tab')[0].classList.add('active');
+        document.getElementById('importTabMeetup').classList.remove('hidden');
+    } else if (tab === 'eventbrite') {
+        document.querySelectorAll('#importTabsAwsUg .import-tab')[1].classList.add('active');
+        document.getElementById('importTabEventbrite').classList.remove('hidden');
+    }
+}
+
+async function executeImport(source) {
+    const resultDiv = document.getElementById('importResult');
+    const resultContent = document.getElementById('importResultContent');
+
+    let payload = { eventId: activeEventId };
+
+    // CSV import para The Guild IT
+    if (source === 'csv') {
+        const fileInput = document.getElementById('csvFile');
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Selecciona un archivo CSV.');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const csvText = await file.text();
+
+        // Parsear CSV
+        const attendees = parseCSV(csvText);
+        if (attendees.length === 0) {
+            alert('No se encontraron registros válidos en el CSV.');
+            return;
+        }
+
+        payload.attendees = attendees;
+        payload.source = 'csv';
+
+        // Mostrar loading
+        resultDiv.classList.remove('hidden');
+        resultContent.textContent = 'Importando asistentes desde CSV...';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/import/csv`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                resultContent.textContent = 'Error: ' + (data.error || 'Error desconocido');
+                return;
+            }
+
+            resultContent.textContent = 'Importación exitosa - Fuente: CSV - Encontrados: ' +
+                data.totalFound + ' | Nuevos: ' + data.imported + ' | Actualizados: ' + (data.updated || 0);
+
+            // Recargar lista de pre-registrados
+            await loadPreregistered();
+
+            // Limpiar file input
+            fileInput.value = '';
+            document.getElementById('csvPreview').classList.add('hidden');
+
+        } catch (error) {
+            console.error('Error en importación CSV:', error);
+            resultContent.textContent = 'Error de conexión: ' + error.message;
+        }
+        return;
+    }
+
+    // Meetup import (AWS UG)
+    if (source === 'meetup') {
+        const eventUrl = document.getElementById('meetupEventUrl').value.trim();
+        const accessToken = document.getElementById('meetupToken').value.trim();
+
+        if (!eventUrl) {
+            alert('Ingresa la URL del evento de Meetup.');
+            return;
+        }
+        if (!accessToken) {
+            alert('Ingresa tu Access Token de Meetup.');
+            return;
+        }
+
+        payload.eventUrl = eventUrl;
+        payload.accessToken = accessToken;
+    } else {
+        // Eventbrite import (AWS UG)
+        const eventUrl = document.getElementById('eventbriteEventUrl').value.trim();
+        const accessToken = document.getElementById('eventbriteToken').value.trim();
+
+        if (!eventUrl) {
+            alert('Ingresa la URL del evento de Eventbrite.');
+            return;
+        }
+        if (!accessToken) {
+            alert('Ingresa tu API Token de Eventbrite.');
+            return;
+        }
+
+        payload.eventUrl = eventUrl;
+        payload.accessToken = accessToken;
+    }
+
+    // Mostrar loading
+    resultDiv.classList.remove('hidden');
+    resultContent.innerHTML = '<div class="spinner-small"></div> Importando asistentes...';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/import/${source}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            resultContent.innerHTML = `
+                <div class="import-error">
+                    <strong>❌ Error:</strong> ${data.error || 'Error desconocido'}
+                    ${data.hint ? `<br><small>${data.hint}</small>` : ''}
+                    ${data.details ? `<br><small>Detalles: ${data.details}</small>` : ''}
+                </div>`;
+            return;
+        }
+
+        resultContent.innerHTML = `
+            <div class="import-success">
+                <strong>✅ Importación exitosa</strong><br>
+                Fuente: <strong>${data.source === 'meetup' ? 'Meetup.com' : 'Eventbrite'}</strong><br>
+                Encontrados: <strong>${data.totalFound}</strong> |
+                Importados: <strong>${data.imported}</strong> |
+                Duplicados omitidos: <strong>${data.skipped}</strong>
+            </div>`;
+
+        // Recargar lista de pre-registrados
+        await loadPreregistered();
+
+    } catch (error) {
+        console.error('Error en importación:', error);
+        resultContent.innerHTML = `
+            <div class="import-error">
+                <strong>❌ Error de conexión:</strong> ${error.message}
+            </div>`;
+    }
+}
+
+// Parsear CSV: Nombre, Email, Empresa, Role
+function parseCSV(csvText) {
+    const lines = csvText.trim().split(/\r?\n/);
+    if (lines.length === 0) return [];
+
+    const attendees = [];
+    let startIndex = 0;
+
+    // Detectar si la primera línea es encabezado
+    const firstLine = lines[0].toLowerCase();
+    if (firstLine.includes('nombre') || firstLine.includes('email') || firstLine.includes('name')) {
+        startIndex = 1;
+    }
+
+    for (let i = startIndex; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Parsear CSV respetando comillas
+        const fields = parseCSVLine(line);
+        if (fields.length >= 1) {
+            attendees.push({
+                fullName: (fields[0] || '').trim(),
+                email: (fields[1] || '').trim(),
+                company: (fields[2] || '').trim(),
+                role: (fields[3] || '').trim()
+            });
+        }
+    }
+
+    return attendees.filter(a => a.fullName); // Filtrar registros sin nombre
+}
+
+// Parsear una línea CSV respetando comillas
+function parseCSVLine(line) {
+    const fields = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            fields.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    fields.push(current);
+    return fields;
+}
+
+async function loadPreregistered() {
+    if (!activeEventId) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/import/preregistered/${activeEventId}`);
+        const data = await response.json();
+
+        const list = document.getElementById('preregisteredList');
+        const tbody = document.getElementById('preregisteredTableBody');
+        const stats = document.getElementById('preregisteredStats');
+
+        if (!data.attendees || data.attendees.length === 0) {
+            list.classList.add('hidden');
+            return;
+        }
+
+        list.classList.remove('hidden');
+
+        const total = data.attendees.length;
+        const checkedIn = data.attendees.filter(a => a.status === 'checked_in').length;
+        const pending = total - checkedIn;
+
+        stats.innerHTML = `
+            Total: <strong>${total}</strong> |
+            Check-in: <strong>${checkedIn}</strong> |
+            Pendientes: <strong>${pending}</strong>
+        `;
+
+        tbody.innerHTML = data.attendees.map(a => `
+            <tr class="${a.status === 'checked_in' ? 'row-checked-in' : ''}">
+                <td>${a.fullName}</td>
+                <td>${a.email || '—'}</td>
+                <td>${a.company || '—'}</td>
+                <td><span class="source-badge source-${a.source}">${a.source}</span></td>
+                <td><span class="status-badge status-${a.status}">${a.status === 'checked_in' ? '✅ Check-in' : '⏳ Pendiente'}</span></td>
+            </tr>`).join('');
+
+    } catch (error) {
+        console.error('Error cargando pre-registrados:', error);
+    }
+}
+
+// Preview del CSV al seleccionar archivo
+function setupCSVPreview() {
+    const csvFile = document.getElementById('csvFile');
+    if (!csvFile) return;
+
+    csvFile.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            document.getElementById('csvPreview').classList.add('hidden');
+            return;
+        }
+
+        try {
+            const csvText = await file.text();
+            const attendees = parseCSV(csvText);
+
+            const previewDiv = document.getElementById('csvPreview');
+            const countSpan = document.getElementById('csvPreviewCount');
+            const tableDiv = document.getElementById('csvPreviewTable');
+
+            if (attendees.length === 0) {
+                previewDiv.classList.add('hidden');
+                return;
+            }
+
+            countSpan.textContent = attendees.length;
+
+            // Mostrar primeros 5 registros
+            const previewRows = attendees.slice(0, 5);
+            let tableHTML = '<table class="report-table"><thead><tr><th>Nombre</th><th>Email</th><th>Empresa</th><th>Role</th></tr></thead><tbody>';
+
+            for (const a of previewRows) {
+                tableHTML += '<tr>';
+                tableHTML += '<td>' + escapeHTML(a.fullName) + '</td>';
+                tableHTML += '<td>' + escapeHTML(a.email || '—') + '</td>';
+                tableHTML += '<td>' + escapeHTML(a.company || '—') + '</td>';
+                tableHTML += '<td>' + escapeHTML(a.role || '—') + '</td>';
+                tableHTML += '</tr>';
+            }
+
+            if (attendees.length > 5) {
+                tableHTML += '<tr><td colspan="4" style="text-align:center;color:#666;">... y ' + (attendees.length - 5) + ' más</td></tr>';
+            }
+
+            tableHTML += '</tbody></table>';
+            tableDiv.innerHTML = tableHTML;
+            previewDiv.classList.remove('hidden');
+
+        } catch (error) {
+            console.error('Error en preview CSV:', error);
+        }
+    });
+}
+
+// Escapar HTML para prevenir XSS
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+}
+
+// Inicializar preview de CSV cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupCSVPreview);
+} else {
+    setupCSVPreview();
+}

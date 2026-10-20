@@ -1,0 +1,95 @@
+Asunto: 🚀 Proyecto: Artículo Sistema de Registro Automático - AWS UG Monterrey
+
+---
+
+Hola Daniel,
+
+Espero que estés muy bien. Te comparto un proyecto emocionante que necesita tu magia creativa.
+
+🎯 EL PROYECTO
+Hemos desarrollado un sistema de registro automático para meetups que transformó nuestra operación:
+• ⚡ 95% reducción en tiempo (de 10 min a 12 segundos por persona)
+• 💰 $1 USD de costo por evento de 100 personas
+• ✅ 0% errores (antes 15%)
+• 🎉 100% satisfacción de asistentes
+
+Queremos crear un artículo de alto impacto para compartirlo con la comunidad AWS global.
+
+📦 LO QUE TE COMPARTO
+1. Artículo base (~3,500 palabras) - necesita pulir narrativa y storytelling
+2. 7 diagramas de arquitectura (PNG) - pueden rediseñarse más visuales
+3. Documentación técnica completa
+4. Repositorio GitHub con código: [URL]
+5. Fotos y videos del sistema: [URL Google Drive/Dropbox]
+
+🎨 LO QUE NECESITAMOS
+CONTENIDO:
+• Mejorar narrativa sin perder profundidad técnica
+• Optimizar hook inicial y estructura
+• SEO y engagement
+
+VISUAL:
+• Rediseñar diagramas (más visuales, menos técnicos)
+• Crear infografías (antes/después, costos, flujo)
+• Assets para redes sociales (cover, carrusel Instagram, Twitter)
+
+MULTIMEDIA (opcional):
+• Video explicativo 60-90 seg
+• Animación del flujo de datos
+
+🎯 PÚBLICO
+Organizadores de AWS User Groups, Community Builders, líderes de comunidades técnicas.
+
+Tono: Técnico pero accesible, inspirador, profesional pero cercano.
+
+📅 TIMELINE SUGERIDO
+• Día 1-2: Revisión y brainstorming
+• Día 3-5: Primera versión mejorada
+• Día 6-7: Diseño de assets
+• Día 8-9: Revisiones finales
+• Día 10: Publicación
+
+🌟 PUNTOS CLAVE A DESTACAR
+1. AWS Builder Community como fuente de datos única
+2. Arquitectura serverless ($1 USD/evento)
+3. Impacto real y medible
+4. Open source y replicable
+
+📢 CANALES
+Medium, Dev.to, LinkedIn, Twitter, AWS Community Builders Slack
+
+📋 ENTREGABLES
+1. Artículo final (Markdown + versiones por plataforma)
+2. Diagramas mejorados (PNG alta res)
+3. Infografías
+4. Assets para redes sociales
+5. Guía de publicación
+6. Video/animación (si aplica)
+
+📎 ARCHIVOS
+Todo está en: [carpeta compartida/repositorio]
+• ARTICULO_COMUNIDADES.md (borrador)
+• Carpeta diagrams/ (7 imágenes)
+• Documentación técnica
+• Fotos y videos
+
+🤝 SIGUIENTE PASO
+¿Agendamos 30 min para revisar el material juntos y resolver dudas?
+
+Confío 100% en tu criterio creativo. Cualquier idea o sugerencia, ¡bienvenida!
+
+¿Qué te parece? ¿Necesitas algo más para arrancar?
+
+Saludos,
+[Tu nombre]
+AWS User Group Monterrey
+
+P.D.: Si quieres probar el sistema en vivo o hacer demos, con gusto te doy acceso.
+
+---
+
+Links rápidos:
+📁 Repo: [URL]
+📸 Fotos: [URL]
+🎥 Videos: [URL]
+🌐 Demo: [URL]

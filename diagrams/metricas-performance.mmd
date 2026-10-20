@@ -1,0 +1,17 @@
+gantt
+    title Tiempo de Procesamiento por Badge
+    dateFormat  s
+    axisFormat %Ss
+
+    section Extracción
+    Scraper Lambda (Builder Community)    :a1, 0, 7s
+    
+    section Generación
+    Badge Generator (PDF + QR)            :a2, after a1, 2s
+    
+    section Impresión
+    Download PDF                          :a3, after a2, 1s
+    Print Job (CUPS)                      :a4, after a3, 2s
+    
+    section Total
+    Tiempo Total (12 segundos)            :milestone, after a4, 0s

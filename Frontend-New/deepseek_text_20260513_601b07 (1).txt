@@ -1,0 +1,84 @@
+
+---
+
+## design.md
+
+```markdown
+# Documento de Diseño: Arquitectura Spec-Driven con Kiro
+
+## 1. Arquitectura General
+
+### 1.1. Capa de Presentación: Kiro PWA
+**Responsabilidad:** Renderizar la UI a partir de especificaciones JSON. Capturar y encolar toda la telemetría de usuario.
+
+- **Spec‑Driven Renderer:** Componente central que recibe una estructura JSON, resuelve los tipos de componente registrados y construye la interfaz. Implementa un Virtual DOM mínimo para aplicar actualizaciones incrementales.
+- **Queue Manager & Offline Storage:** Módulo JavaScript que persiste eventos en IndexedDB, aplica micro‑batching y reintentos con backoff. Utiliza `navigator.sendBeacon()` para envíos críticos antes del cierre.
+- **Conexión bidireccional:** WebSocket (API Gateway) para recibir specs en tiempo real (pantalla Speaker, actualización de agenda, etc.) y enviar confirmaciones de acción.
+
+### 1.2. Capa de Ingesta y Distribución (AWS)
+- **Amazon Kinesis Data Streams:** Punto de entrada de la telemetría desde Kiro. Garantiza orden y durabilidad en los eventos crudos.
+- **Amazon EventBridge:** Bus de eventos interno. Enruta eventos a las funciones Lambda de inteligencia y a los dashboards en vivo.
+- **Amazon API Gateway (WebSocket y REST):** Conexión persistente para envio de specs y telemetría de alta frecuencia en el dashboard.
+
+### 1.3. Capa de Inteligencia (Motor Quantum-Inspired)
+Lógica implementada en AWS Lambda (Node.js) activada por EventBridge.
+
+1. **Generador de superposición:** Ante un evento desencadenante, crea un conjunto de intervenciones candidatas junto con los posibles estados futuros del engagement. Utiliza datos de sesión, perfil del usuario y heurísticas.
+2. **Evaluador de impacto y riesgo:** Simula el resultado de cada acción candidata usando modelos ligeros (árboles de decisión o simulación estocástica). Asigna una puntuación compuesta de impacto esperado y riesgo de perturbación.
+3. **Colapso y dispatcher:** Selecciona la acción óptima y construye la spec JSON correspondiente. La envía al WebSocket del speaker a través de API Gateway. Registra la decisión en DynamoDB como evento `DECISION_ISSUED`.
+
+### 1.4. Capa de Análisis y Persistencia de Estado
+- **DynamoDB:** Estado actual del evento (sesiones, usuarios, estado del agente). Perfecto para Time Travel con clave de ordenamiento temporal.
+- **Amazon Timestream:** Series temporales optimizadas para heatmaps y tendencias de engagement en el tiempo.
+- **WebSocket Dashboard:** El backend de WebSocket consulta métricas en tiempo real (desde EventBridge y DynamoDB) y las transmite al organizador.
+
+### 1.5. Learning Loop
+- Cada vez que el speaker ejecuta una sugerencia (`ACTION_EXECUTED`), el evento se registra en Timestream con el outcome posterior (mejora de engagement en ventana temporal).
+- Estos datos retroalimentan los pesos de las heurísticas y, potencialmente, modelos en SageMaker.
+
+## 2. Mapa de Pantallas y su Relación Spec-Driven
+
+Cada pantalla de Kiro se comporta como un “contenedor inteligente” que puede recibir specs para modificar su contenido.
+
+### 2.1. Perfil Usuario (8 pantallas)
+1. **Login:** Magic Link → auto‑autenticación.
+2. **Registro:** Spec estática; envía eventos de progreso.
+3. **Menú/Inicio:** Renderiza un grid de tarjetas de acceso rápido dictado por spec (ej. “Ir a la sesión actual”).
+4. **Agenda:** Línea de tiempo que recibe actualizaciones de sesión en vivo (cambio de sala, retrasos) mediante spec.
+5. **Misiones:** Pantalla 100% spec‑driven. El organizador publica una spec con ítems/desafíos; Kiro la renderiza y envía telemetría al completar.
+6. **Scanner:** Herramienta de networking; genera eventos de conexión.
+7. **Q&A / Plática en vivo:** Componentes de preguntas, lista de votación y barra de reacciones. Cada interacción es un evento ligero.
+8. **Configuración:** Ajustes locales de la PWA.
+
+### 2.2. Perfil Speaker (comparte 1–7 y añade)
+9. **Pantalla de Sugerencias:** Es la pantalla Spec‑Driven por excelencia. No tiene estructura fija; recibe specs dinámicas con tarjetas de acción (`ActionCard`), gráficos de alerta de abandono, o mini‑encuestas. El speaker ve los componentes en orden de prioridad y puede ejecutarlos con un tap. Cada acción dispara un `ACTION_EXECUTED`.
+
+### 2.3. Perfil Organizer (10 pantallas)
+1. **Login/Registro/Menú:** Similares al usuario, con opciones administrativas.
+2. **Agenda / Escanear:** Funciones estándar.
+3. **Game: Add Missions (Crear Misiones):** Formulario que al guardar emite una spec (JSON) y la almacena; el servidor la entrega a los usuarios en su pantalla “Misiones”.
+4. **Dashboard en vivo:** Consume el WebSocket de métricas. Renderiza heatmaps, gráficos de engagement y timeline de eventos.
+5. **Feedback:** Resultados cualitativos de encuestas.
+6. **Tablero de participación (Score):** Clasificación de usuarios o equipos basada en misiones completadas, interacciones, etc.
+7. **Historial de Eventos (Time Travel):** UI que viaja a un timestamp, recrea el estado desde DynamoDB/Timestream y muestra las métricas de ese instante.
+
+## 3. Protocolo de Comunicación Spec-Driven
+
+El flujo típico de una intervención inteligente:
+1. El agente emite un mensaje al WebSocket con la siguiente estructura:
+   ```json
+   {
+     "type": "spec_update",
+     "target": "speaker_suggestions",
+     "spec": {
+       "screen": "speaker_suggestions",
+       "components": [
+         {
+           "type": "ActionCard",
+           "id": "poll_1",
+           "props": { "question": "¿Seguir con el tema?", "options": ["Sí","No"] }
+         }
+       ],
+       "metadata": { "priority": "high" }
+     }
+   }

@@ -1,0 +1,4 @@
+email,password,role
+attendee@aws.com,quantum2026,attendee
+speaker@aws.com,quantum2026,speaker
+org@aws.com,quantum2026,organizer

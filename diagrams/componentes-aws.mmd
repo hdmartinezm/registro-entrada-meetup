@@ -1,0 +1,68 @@
+graph LR
+    subgraph "Compute"
+        L1[Lambda: profile-lookup<br/>Node.js 18<br/>512MB / 30s]
+        L2[Lambda: scraper<br/>Node.js 18<br/>3GB / 90s<br/>Puppeteer]
+        L3[Lambda: badge-generator<br/>Node.js 18<br/>1GB / 60s<br/>PDFKit]
+        L4[Lambda: stats<br/>Node.js 18<br/>256MB / 10s]
+    end
+
+    subgraph "Storage"
+        S1[S3: Frontend<br/>Static Website<br/>CloudFront Origin]
+        S2[S3: Badges<br/>PDF Storage<br/>Public Read]
+    end
+
+    subgraph "Database"
+        D1[DynamoDB: profiles<br/>On-Demand<br/>TTL: 24h]
+    end
+
+    subgraph "API"
+        A1[API Gateway<br/>REST API<br/>CORS Enabled]
+    end
+
+    subgraph "Queue"
+        Q1[SQS: print-queue<br/>Standard Queue<br/>Visibility: 120s]
+    end
+
+    subgraph "CDN"
+        C1[CloudFront<br/>HTTPS Only<br/>Global Edge]
+    end
+
+    subgraph "Monitoring"
+        M1[CloudWatch Logs<br/>Lambda Logs]
+        M2[CloudWatch Metrics<br/>API + Lambda]
+    end
+
+    A1 --> L1
+    A1 --> L2
+    A1 --> L3
+    A1 --> L4
+    
+    L1 --> D1
+    L2 --> D1
+    L3 --> D1
+    L4 --> D1
+    
+    L3 --> S2
+    L3 --> Q1
+    
+    C1 --> S1
+    
+    L1 -.-> M1
+    L2 -.-> M1
+    L3 -.-> M1
+    L4 -.-> M1
+    
+    A1 -.-> M2
+
+    style L1 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style L2 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style L3 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style L4 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style S1 fill:#569A31,stroke:#232F3E,stroke-width:2px,color:#fff
+    style S2 fill:#569A31,stroke:#232F3E,stroke-width:2px,color:#fff
+    style D1 fill:#527FFF,stroke:#232F3E,stroke-width:2px,color:#fff
+    style A1 fill:#FF4F8B,stroke:#232F3E,stroke-width:2px,color:#fff
+    style Q1 fill:#FF4F8B,stroke:#232F3E,stroke-width:2px,color:#fff
+    style C1 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style M1 fill:#759C3E,stroke:#232F3E,stroke-width:2px,color:#fff
+    style M2 fill:#759C3E,stroke:#232F3E,stroke-width:2px,color:#fff

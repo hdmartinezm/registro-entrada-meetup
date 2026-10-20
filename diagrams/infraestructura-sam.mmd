@@ -1,0 +1,37 @@
+graph TB
+    subgraph "template.yaml - AWS SAM"
+        T[📄 SAM Template]
+        
+        T --> R1[Resources]
+        
+        R1 --> API[AWS::Serverless::Api<br/>registro-meetup-api]
+        R1 --> L1[AWS::Serverless::Function<br/>ProfileLookupFunction]
+        R1 --> L2[AWS::Serverless::Function<br/>ScraperFunction]
+        R1 --> L3[AWS::Serverless::Function<br/>BadgeGeneratorFunction]
+        R1 --> L4[AWS::Serverless::Function<br/>StatsFunction]
+        R1 --> DB[AWS::DynamoDB::Table<br/>ProfilesTable]
+        R1 --> S3B[AWS::S3::Bucket<br/>BadgesBucket]
+        R1 --> SQS[AWS::SQS::Queue<br/>PrintQueue]
+        
+        T --> O[Outputs]
+        O --> O1[ApiUrl]
+        O --> O2[BadgesBucketName]
+        O --> O3[PrintQueueUrl]
+    end
+
+    subgraph "Deployment"
+        D[deploy.sh] --> SAM[sam build]
+        SAM --> SAMD[sam deploy]
+        SAMD --> CF[CloudFormation Stack]
+        CF --> AWS[☁️ AWS Resources]
+    end
+
+    style T fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style API fill:#FF4F8B,stroke:#232F3E,stroke-width:2px,color:#fff
+    style L1 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style L2 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style L3 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style L4 fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style DB fill:#527FFF,stroke:#232F3E,stroke-width:2px,color:#fff
+    style S3B fill:#569A31,stroke:#232F3E,stroke-width:2px,color:#fff
+    style SQS fill:#FF4F8B,stroke:#232F3E,stroke-width:2px,color:#fff

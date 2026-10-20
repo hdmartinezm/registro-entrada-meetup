@@ -1,0 +1,52 @@
+sequenceDiagram
+    participant U as 👤 Usuario
+    participant CF as ☁️ CloudFront
+    participant API as 🚪 API Gateway
+    participant PL as 🔍 Profile Lookup
+    participant SC as 🕷️ Scraper
+    participant BC as 🌍 Builder Community
+    participant BG as 🎨 Badge Generator
+    participant DB as 🗄️ DynamoDB
+    participant S3 as 📄 S3 Badges
+    participant SQS as 📬 SQS Queue
+    participant PC as 💻 Print Client
+    participant PR as 🖨️ Impresora
+
+    U->>CF: 1. Accede a registration-station.html
+    CF->>U: 2. Carga PWA
+    U->>API: 3. POST /profile-lookup<br/>{username: "hectormtz"}
+    API->>PL: 4. Invoke Lambda
+    PL->>DB: 5. Buscar en caché
+    
+    alt Perfil en caché (< 24h)
+        DB->>PL: 6a. Retorna datos
+        PL->>API: 7a. Datos del perfil
+    else Perfil no en caché
+        PL->>SC: 6b. Trigger scraper
+        SC->>BC: 7b. GET community.aws/hectormtz
+        BC->>SC: 8b. HTML + JavaScript
+        SC->>SC: 9b. Puppeteer render (7s)
+        SC->>DB: 10b. Guardar perfil
+        SC->>PL: 11b. Datos extraídos
+        PL->>API: 12b. Datos del perfil
+    end
+    
+    API->>U: 8. Muestra datos para confirmar
+    U->>API: 9. POST /generate-badge<br/>{profileData, confirmed}
+    API->>BG: 10. Invoke Lambda
+    BG->>BG: 11. Genera PDF con PDFKit<br/>QR code + diseño (2s)
+    BG->>S3: 12. Sube badge.pdf
+    BG->>DB: 13. Registra badge generado
+    BG->>SQS: 14. Envía mensaje print job
+    BG->>API: 15. Retorna URL del badge
+    API->>U: 16. Muestra badge + botón descarga
+    
+    Note over PC,PR: Proceso Asíncrono de Impresión
+    PC->>SQS: 17. Poll queue (cada 2s)
+    SQS->>PC: 18. Mensaje con badge URL
+    PC->>S3: 19. Descarga PDF
+    S3->>PC: 20. Badge PDF (3KB)
+    PC->>PR: 21. lp -d printer badge.pdf
+    PR->>PR: 22. Imprime badge (5s)
+    PC->>SQS: 23. Delete message
+    PC->>PC: 24. Log: Badge impreso ✅

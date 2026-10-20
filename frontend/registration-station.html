@@ -65,6 +65,7 @@
         <!-- Modal: Importar Asistentes -->
         <div id="importModal" class="modal-overlay hidden">
             <div class="modal-box modal-wide">
+                <button class="modal-close-btn" onclick="closeImportModal()">&times;</button>
                 <h2>📋 Importar Lista de Asistentes</h2>
                 <p class="import-subtitle" id="importSubtitle">Importa la lista de pre-registrados</p>
 
@@ -216,7 +217,10 @@
             
             <div id="cameraContainer" class="camera-container hidden">
                 <div id="qrReader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
-                <button id="stopCameraBtn" class="btn-secondary">Cerrar Cámara</button>
+                <div class="camera-buttons">
+                    <button id="flipCameraBtn" class="btn-flip-camera" onclick="flipCamera()">🔄 Cambiar Cámara</button>
+                    <button id="stopCameraBtn" class="btn-secondary">Cerrar Cámara</button>
+                </div>
             </div>
 
             <div class="manual-option">

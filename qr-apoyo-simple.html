@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Apoyo - Versión Simple</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .card {
+            border: 3px solid #FF9900;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+        }
+        
+        h1 {
+            color: #232F3E;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #FF9900;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        
+        .qr-code {
+            width: 350px;
+            height: 350px;
+            margin: 30px auto;
+            display: block;
+            border: 2px solid #eee;
+            padding: 10px;
+            background: white;
+        }
+        
+        .description {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+        
+        .description h2 {
+            color: #232F3E;
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        
+        .description p {
+            color: #545b64;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .url {
+            background: #232F3E;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 20px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            color: #879596;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🏥 ¡Apóyanos!</h1>
+        <div class="subtitle">Escanea el código QR</div>
+        
+        <img src="qr-apoyo-articulo.png" alt="QR Code" class="qr-code">
+        
+        <div class="description">
+            <h2>📖 AIdeas Cloud Doctor</h2>
+            <p><strong>Your AWS Infrastructure Health Check</strong></p>
+            <p>Aprende cómo implementar chequeos automáticos de salud para tu infraestructura AWS usando IA.</p>
+            <p>✓ Análisis automático<br>
+               ✓ Recomendaciones con IA<br>
+               ✓ Detección proactiva<br>
+               ✓ Optimización de costos</p>
+        </div>
+        
+        <div class="url">
+            https://builder.aws.com/content/3AluBlUwYKVavYSXF5J7hQf4T9P/aideas-cloud-doctor-your-aws-infrastructure-health-check
+        </div>
+        
+        <div class="footer">
+            <p><strong>AWS Builder Community</strong></p>
+            <p>Comparte conocimiento • Construye comunidad</p>
+        </div>
+    </div>
+</body>
+</html>

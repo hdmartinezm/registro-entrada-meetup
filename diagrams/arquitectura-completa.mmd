@@ -1,0 +1,65 @@
+graph TB
+    subgraph "Frontend - CloudFront + S3"
+        A[👤 Usuario<br/>Tablet/Celular/Laptop] --> B[☁️ CloudFront CDN<br/>HTTPS]
+        B --> C[📦 S3 Bucket<br/>Static Website]
+        C --> D[🌐 registration-station.html<br/>Progressive Web App]
+    end
+
+    subgraph "API Layer - API Gateway"
+        D --> E[🚪 API Gateway<br/>REST API<br/>/prod]
+    end
+
+    subgraph "Lambda Functions - Compute"
+        E --> F[🔍 Profile Lookup<br/>Lambda]
+        E --> G[🕷️ Scraper Lambda<br/>Puppeteer + Chromium<br/>3GB RAM / 90s]
+        E --> H[🎨 Badge Generator<br/>Lambda<br/>PDFKit]
+        E --> I[📊 Stats Lambda<br/>Métricas]
+        
+        F --> G
+        G --> H
+    end
+
+    subgraph "External Services"
+        G --> J[🌍 AWS Builder Community<br/>community.aws/profile]
+    end
+
+    subgraph "Storage - S3"
+        H --> K[📄 S3 Bucket<br/>Badges PDFs<br/>registro-meetup-badges]
+    end
+
+    subgraph "Database - DynamoDB"
+        F --> L[(🗄️ DynamoDB<br/>Profiles Table)]
+        G --> L
+        H --> L
+        I --> L
+    end
+
+    subgraph "Queue - SQS"
+        H --> M[📬 SQS Queue<br/>Print Jobs<br/>registro-meetup-print-queue]
+    end
+
+    subgraph "Print Client - Local"
+        M --> N[💻 Node.js Client<br/>print-client<br/>Polling SQS]
+        N --> O[🖨️ Impresora Térmica<br/>3x2 inches<br/>USB/Network]
+    end
+
+    subgraph "Monitoring"
+        F -.-> P[📈 CloudWatch Logs]
+        G -.-> P
+        H -.-> P
+        I -.-> P
+        N -.-> P
+    end
+
+    style A fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style B fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style C fill:#569A31,stroke:#232F3E,stroke-width:2px,color:#fff
+    style E fill:#FF4F8B,stroke:#232F3E,stroke-width:2px,color:#fff
+    style F fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style G fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style H fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style I fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#fff
+    style K fill:#569A31,stroke:#232F3E,stroke-width:2px,color:#fff
+    style L fill:#527FFF,stroke:#232F3E,stroke-width:2px,color:#fff
+    style M fill:#FF4F8B,stroke:#232F3E,stroke-width:2px,color:#fff
+    style P fill:#759C3E,stroke:#232F3E,stroke-width:2px,color:#fff

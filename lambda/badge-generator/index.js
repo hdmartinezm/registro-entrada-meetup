@@ -3,6 +3,7 @@ const PDFDocument = require('pdfkit');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const QRCode = require('qrcode');
 
 const s3 = new AWS.S3();
 const dynamodb = new AWS.DynamoDB.DocumentClient();
@@ -12,6 +13,36 @@ const BUCKET_NAME = process.env.BADGE_BUCKET;
 const TABLE_NAME = process.env.ATTENDEES_TABLE;
 const EVENTS_TABLE = process.env.EVENTS_TABLE;
 const PRINT_QUEUE_URL = process.env.PRINT_QUEUE_URL;
+
+// Convertir nombre a slug para URL de perfil
+function nameToSlug(name) {
+    return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+        .replace(/[^a-z0-9\s-]/g, '') // Solo letras, números, espacios y guiones
+        .trim()
+        .replace(/\s+/g, '-') // Espacios a guiones
+        .replace(/-+/g, '-'); // Múltiples guiones a uno
+}
+
+// Generar QR code como buffer PNG
+async function generateQRBuffer(url) {
+    try {
+        return await QRCode.toBuffer(url, {
+            type: 'png',
+            width: 80,
+            margin: 1,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        });
+    } catch (error) {
+        console.error('Error generando QR:', error);
+        return null;
+    }
+}
 
 // Temas de badges según tipo de evento
 const BADGE_THEMES = {
@@ -229,6 +260,15 @@ async function generateBadgePDF({ fullName, company, role, username, linkedin, b
         }
     }
 
+    // Para eventos The Guild IT, generar QR del perfil
+    let profileQRBuffer = null;
+    if (eventType === 'the-guild-it' && fullName) {
+        const slug = nameToSlug(fullName);
+        const profileUrl = `https://theguildit.io/profile/${slug}`;
+        console.log('Generando QR para perfil:', profileUrl);
+        profileQRBuffer = await generateQRBuffer(profileUrl);
+    }
+
     return new Promise((resolve, reject) => {
         const doc = new PDFDocument({
             size: [216, 144], // 3x2 pulgadas en puntos (72 DPI) - para impresora térmica
@@ -359,8 +399,30 @@ async function generateBadgePDF({ fullName, company, role, username, linkedin, b
                });
         }
 
-        // Columna derecha - Logo del evento (si aplica)
-        if (logoBuffer && theme.showLogo) {
+        // Columna derecha - QR de perfil (Guild IT) o Logo del evento
+        if (profileQRBuffer) {
+            // Para The Guild IT: mostrar QR del perfil
+            const qrSize = 70;
+            const qrX = rightColumnX;
+            const qrY = contentStartY + 5;
+
+            try {
+                doc.image(profileQRBuffer, qrX, qrY, {
+                    fit: [qrSize, qrSize]
+                });
+                // Texto debajo del QR
+                doc.fontSize(6)
+                   .fillColor('#666666')
+                   .font('Helvetica')
+                   .text('Perfil Guild IT', qrX, qrY + qrSize + 2, {
+                       width: qrSize,
+                       align: 'center'
+                   });
+            } catch (err) {
+                console.error('Error insertando QR en badge:', err);
+            }
+        } else if (logoBuffer && theme.showLogo) {
+            // Para otros eventos: mostrar logo
             const logoSize = 90;
             const logoX = rightColumnX - 5;
             const logoY = contentStartY;

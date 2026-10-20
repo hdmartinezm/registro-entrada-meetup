@@ -1,0 +1,39 @@
+stateDiagram-v2
+    [*] --> Esperando: Print Client iniciado
+    
+    Esperando --> Polling: Cada 2 segundos
+    Polling --> MensajeRecibido: Badge en cola
+    Polling --> Esperando: Cola vacía
+    
+    MensajeRecibido --> Descargando: Obtener PDF de S3
+    Descargando --> Verificando: PDF descargado
+    Verificando --> ColaVacia: Verificar trabajos pendientes
+    
+    ColaVacia --> Imprimiendo: Cola vacía
+    ColaVacia --> Esperando: Hay trabajos pendientes
+    
+    Imprimiendo --> EsperandoCompletar: Enviar a CUPS
+    EsperandoCompletar --> Completado: Job completado
+    EsperandoCompletar --> Error: Timeout o error
+    
+    Completado --> CortesPapel: Enviar comando ESC/POS
+    CortesPapel --> EsperandoExpulsion: Esperar 2s
+    EsperandoExpulsion --> Limpieza: Badge impreso ✅
+    
+    Limpieza --> EliminarMensaje: Borrar de SQS
+    EliminarMensaje --> EliminarArchivo: Borrar PDF temporal
+    EliminarArchivo --> Esperando: Listo para siguiente
+    
+    Error --> Reintento: Mensaje vuelve a cola
+    Reintento --> Esperando: Después de VisibilityTimeout
+    
+    note right of Imprimiendo
+        lp -d Ribetec_RT_420ME badge.pdf
+        Espera completación en CUPS
+    end note
+    
+    note right of CortesPapel
+        Comandos ESC/POS:
+        0x1B 0x64 0x03 (Avanzar 3 líneas)
+        0x1D 0x56 0x00 (Corte completo)
+    end note

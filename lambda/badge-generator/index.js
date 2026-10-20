@@ -30,7 +30,7 @@ const BADGE_THEMES = {
 exports.handler = async (event) => {
     try {
         const body = JSON.parse(event.body);
-        const { username, fullName, company, role, email, bio, eventId } = body;
+        const { username, fullName, company, role, email, bio, eventId, linkedin } = body;
 
         if (!fullName) {
             return {
@@ -75,6 +75,7 @@ exports.handler = async (event) => {
             company,
             role,
             username,
+            linkedin,
             badgeId,
             eventType
         });
@@ -214,7 +215,7 @@ exports.handler = async (event) => {
     }
 };
 
-async function generateBadgePDF({ fullName, company, role, username, badgeId, eventType }) {
+async function generateBadgePDF({ fullName, company, role, username, linkedin, badgeId, eventType }) {
     // Obtener tema según tipo de evento
     const theme = BADGE_THEMES[eventType] || BADGE_THEMES['aws-ug'];
 
@@ -331,12 +332,29 @@ async function generateBadgePDF({ fullName, company, role, username, badgeId, ev
             currentY += doc.heightOfString(role, { width: leftColumnWidth }) + 6;
         }
 
-        // Username
+        // Username o LinkedIn
         if (username) {
             doc.fontSize(9)
                .fillColor('#000000')
                .font('Helvetica-Bold')
                .text(`@${username}`, leftColumnX, currentY, {
+                   width: leftColumnWidth
+               });
+            currentY += 12;
+        }
+
+        // LinkedIn (mostrar solo el username de LinkedIn)
+        if (linkedin) {
+            // Extraer username de LinkedIn de la URL
+            let linkedinDisplay = linkedin;
+            const linkedinMatch = linkedin.match(/linkedin\.com\/in\/([^/?]+)/);
+            if (linkedinMatch) {
+                linkedinDisplay = linkedinMatch[1];
+            }
+            doc.fontSize(8)
+               .fillColor('#0077B5')
+               .font('Helvetica')
+               .text(`in/${linkedinDisplay}`, leftColumnX, currentY, {
                    width: leftColumnWidth
                });
         }

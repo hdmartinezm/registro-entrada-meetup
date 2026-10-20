@@ -342,6 +342,10 @@ async function saveOrUpdateFromCSV(attendees, eventId) {
                 updateParams.ExpressionAttributeNames = { '#role': 'role' };
                 updateParams.ExpressionAttributeValues[':role'] = attendee.role.trim();
             }
+            if (attendee.linkedin && attendee.linkedin.trim()) {
+                updateParams.UpdateExpression += ', linkedin = :linkedin';
+                updateParams.ExpressionAttributeValues[':linkedin'] = attendee.linkedin.trim();
+            }
             // Actualizar nombre si cambió
             if (attendee.fullName.trim() !== existingItem.fullName) {
                 updateParams.UpdateExpression += ', fullName = :name';
@@ -367,6 +371,11 @@ async function saveOrUpdateFromCSV(attendees, eventId) {
             // Solo agregar email si tiene valor
             if (attendee.email && attendee.email.trim()) {
                 item.email = attendee.email.trim();
+            }
+
+            // Guardar LinkedIn si tiene valor
+            if (attendee.linkedin && attendee.linkedin.trim()) {
+                item.linkedin = attendee.linkedin.trim();
             }
 
             await dynamodb.put({
@@ -630,6 +639,7 @@ async function getPreregistered(eventId) {
             email: item.email,
             company: item.company,
             role: item.role,
+            linkedin: item.linkedin || '',
             source: item.source,
             status: item.preregisteredStatus,
             ticketType: item.ticketType || '',

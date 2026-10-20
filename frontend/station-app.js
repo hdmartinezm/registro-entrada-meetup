@@ -260,6 +260,7 @@ async function processProfile(profileUrl) {
                     company: preregistered.company || '',
                     role: preregistered.role || '',
                     email: preregistered.email || '',
+                    linkedin: preregistered.linkedin || '',
                     username: ''
                 };
                 await generateBadgeAutomatically(profileData);
@@ -330,6 +331,7 @@ async function generateBadgeAutomatically(profileData) {
             fullName: profileData.fullName || '',
             company: profileData.company || '',
             role: profileData.role || '',
+            linkedin: profileData.linkedin || '',
             email: '' // Email vacío
         };
 

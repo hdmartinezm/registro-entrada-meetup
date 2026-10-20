@@ -319,11 +319,62 @@ async function findPreregisteredByName(searchTerm) {
     }
 }
 
+// Datos temporales para el badge pendiente
+let pendingBadgeData = null;
+
 // Generar badge automáticamente
 async function generateBadgeAutomatically(profileData) {
+    // Para eventos The Guild IT, preguntar por el perfil
+    if (activeEventData && activeEventData.eventType === 'the-guild-it') {
+        pendingBadgeData = profileData;
+
+        // Sugerir slug basado en el nombre
+        const suggestedSlug = nameToSlug(profileData.fullName || '');
+        document.getElementById('guildProfileSlug').value = suggestedSlug;
+
+        // Mostrar modal
+        document.getElementById('guildProfileModal').classList.remove('hidden');
+        return;
+    }
+
+    // Para otros eventos, continuar directo
+    await finishBadgeGeneration(profileData, null);
+}
+
+// Convertir nombre a slug
+function nameToSlug(name) {
+    return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+}
+
+// Omitir perfil Guild IT
+function skipGuildProfile() {
+    document.getElementById('guildProfileModal').classList.add('hidden');
+    if (pendingBadgeData) {
+        finishBadgeGeneration(pendingBadgeData, null);
+    }
+}
+
+// Confirmar perfil Guild IT
+function confirmGuildProfile() {
+    const slug = document.getElementById('guildProfileSlug').value.trim();
+    document.getElementById('guildProfileModal').classList.add('hidden');
+    if (pendingBadgeData) {
+        finishBadgeGeneration(pendingBadgeData, slug || null);
+    }
+}
+
+// Finalizar generación del badge
+async function finishBadgeGeneration(profileData, guildProfileSlug) {
     document.getElementById('processingStatus').textContent = 'Generando badge...';
     updateProcessStep(2, 'active');
-    
+
     try {
         // Preparar datos para el badge (sin email)
         const badgeData = {
@@ -335,24 +386,32 @@ async function generateBadgeAutomatically(profileData) {
             email: '' // Email vacío
         };
 
+        // Incluir perfil de Guild IT si se proporcionó
+        if (guildProfileSlug) {
+            badgeData.guildProfileSlug = guildProfileSlug;
+        }
+
         // Incluir eventId si hay un evento activo
         if (activeEventId) {
             badgeData.eventId = activeEventId;
         }
-        
+
         const badgeResult = await generateBadge(badgeData);
         updateProcessStep(2, 'completed');
-        
+
         // Paso 3: Enviar a impresora
         document.getElementById('processingStatus').textContent = 'Enviando a impresora...';
         updateProcessStep(3, 'active');
-        
+
         await sendToPrinter(badgeResult.badgeUrl);
         updateProcessStep(3, 'completed');
-        
+
         // Mostrar éxito
         showSuccess(badgeData, badgeResult);
-        
+
+        // Limpiar datos pendientes
+        pendingBadgeData = null;
+
     } catch (error) {
         console.error('Error al generar badge:', error);
         showError(error.message || 'Error al generar el badge');

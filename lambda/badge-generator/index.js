@@ -61,7 +61,7 @@ const BADGE_THEMES = {
 exports.handler = async (event) => {
     try {
         const body = JSON.parse(event.body);
-        const { username, fullName, company, role, email, bio, eventId, linkedin } = body;
+        const { username, fullName, company, role, email, bio, eventId, linkedin, guildProfileSlug } = body;
 
         if (!fullName) {
             return {
@@ -107,6 +107,7 @@ exports.handler = async (event) => {
             role,
             username,
             linkedin,
+            guildProfileSlug,
             badgeId,
             eventType
         });
@@ -246,7 +247,7 @@ exports.handler = async (event) => {
     }
 };
 
-async function generateBadgePDF({ fullName, company, role, username, linkedin, badgeId, eventType }) {
+async function generateBadgePDF({ fullName, company, role, username, linkedin, guildProfileSlug, badgeId, eventType }) {
     // Obtener tema según tipo de evento
     const theme = BADGE_THEMES[eventType] || BADGE_THEMES['aws-ug'];
 
@@ -260,11 +261,10 @@ async function generateBadgePDF({ fullName, company, role, username, linkedin, b
         }
     }
 
-    // Para eventos The Guild IT, generar QR del perfil
+    // Para eventos The Guild IT, generar QR del perfil (solo si se proporcionó el slug)
     let profileQRBuffer = null;
-    if (eventType === 'the-guild-it' && fullName) {
-        const slug = nameToSlug(fullName);
-        const profileUrl = `https://theguildit.io/profile/${slug}`;
+    if (eventType === 'the-guild-it' && guildProfileSlug) {
+        const profileUrl = `https://theguildit.io/profile/${guildProfileSlug}`;
         console.log('Generando QR para perfil:', profileUrl);
         profileQRBuffer = await generateQRBuffer(profileUrl);
     }

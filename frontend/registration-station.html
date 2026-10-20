@@ -205,6 +205,28 @@
             </div>
         </div>
 
+        <!-- Modal: Perfil Guild IT -->
+        <div id="guildProfileModal" class="modal-overlay hidden">
+            <div class="modal-box" style="max-width: 450px;">
+                <h2>🎫 Perfil The Guild IT</h2>
+                <p style="color: #666; margin-bottom: 20px;">Ingresa el slug del perfil para generar el QR en el badge</p>
+
+                <div class="modal-field">
+                    <label for="guildProfileSlug">Perfil (slug)</label>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span style="color: #666; font-size: 12px;">theguildit.io/profile/</span>
+                        <input type="text" id="guildProfileSlug" placeholder="alvaro-hernandez" style="flex: 1;">
+                    </div>
+                    <small>Ejemplo: para Alvaro Hernández usar "alvaro-hernandez"</small>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button class="btn-secondary" onclick="skipGuildProfile()">Omitir</button>
+                    <button class="btn-primary" onclick="confirmGuildProfile()">Continuar con QR</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Estado: Esperando escaneo -->
         <div id="scanWaiting" class="scan-waiting">
             <div class="qr-scanner-icon">📱</div>

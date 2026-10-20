@@ -399,30 +399,8 @@ async function generateBadgePDF({ fullName, company, role, username, linkedin, b
                });
         }
 
-        // Columna derecha - QR de perfil (Guild IT) o Logo del evento
-        if (profileQRBuffer) {
-            // Para The Guild IT: mostrar QR del perfil
-            const qrSize = 70;
-            const qrX = rightColumnX;
-            const qrY = contentStartY + 5;
-
-            try {
-                doc.image(profileQRBuffer, qrX, qrY, {
-                    fit: [qrSize, qrSize]
-                });
-                // Texto debajo del QR
-                doc.fontSize(6)
-                   .fillColor('#666666')
-                   .font('Helvetica')
-                   .text('Perfil Guild IT', qrX, qrY + qrSize + 2, {
-                       width: qrSize,
-                       align: 'center'
-                   });
-            } catch (err) {
-                console.error('Error insertando QR en badge:', err);
-            }
-        } else if (logoBuffer && theme.showLogo) {
-            // Para otros eventos: mostrar logo
+        // Columna derecha - Logo del evento (Quimera para Guild IT)
+        if (logoBuffer && theme.showLogo) {
             const logoSize = 90;
             const logoX = rightColumnX - 5;
             const logoY = contentStartY;
@@ -435,6 +413,28 @@ async function generateBadgePDF({ fullName, company, role, username, linkedin, b
                 });
             } catch (err) {
                 console.error('Error insertando logo en badge:', err);
+            }
+        }
+
+        // QR de perfil Guild IT (pequeño, abajo a la izquierda)
+        if (profileQRBuffer) {
+            const qrSize = 35;
+            const qrX = leftColumnX;
+            const qrY = 105; // Parte inferior
+
+            try {
+                doc.image(profileQRBuffer, qrX, qrY, {
+                    fit: [qrSize, qrSize]
+                });
+                // Texto al lado del QR
+                doc.fontSize(5)
+                   .fillColor('#666666')
+                   .font('Helvetica')
+                   .text('Perfil', qrX + qrSize + 3, qrY + 10, {
+                       width: 40
+                   });
+            } catch (err) {
+                console.error('Error insertando QR en badge:', err);
             }
         }
 

@@ -37,6 +37,8 @@ let reportEventData = {};
 // Scanner de QR
 let html5QrCode = null;
 let isScanning = false;
+let availableCameras = [];
+let currentCameraIndex = 0;
 
 // Cambiar estado de la UI
 function showState(stateName) {
@@ -62,31 +64,61 @@ async function startCamera() {
     try {
         cameraContainer.classList.remove('hidden');
         startCameraBtn.classList.add('hidden');
-        
+
         // Verificar si Html5Qrcode está disponible
         if (typeof Html5Qrcode === 'undefined') {
             throw new Error('Librería de QR no cargada');
         }
-        
+
+        // Obtener lista de cámaras disponibles
+        availableCameras = await Html5Qrcode.getCameras();
+        console.log('Cámaras disponibles:', availableCameras);
+
+        // Mostrar/ocultar botón de girar según cantidad de cámaras
+        const flipBtn = document.getElementById('flipCameraBtn');
+        if (flipBtn) {
+            flipBtn.style.display = availableCameras.length > 1 ? 'block' : 'none';
+        }
+
+        // Intentar usar cámara trasera primero (environment)
+        currentCameraIndex = availableCameras.findIndex(cam =>
+            cam.label.toLowerCase().includes('back') ||
+            cam.label.toLowerCase().includes('rear') ||
+            cam.label.toLowerCase().includes('trasera') ||
+            cam.label.toLowerCase().includes('environment')
+        );
+        if (currentCameraIndex === -1) currentCameraIndex = 0;
+
         html5QrCode = new Html5Qrcode("qrReader");
-        
+
         const config = {
             fps: 10,
             qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0
         };
-        
-        await html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            onQRCodeScanned,
-            onScanError
-        );
-        
+
+        if (availableCameras.length > 0) {
+            await html5QrCode.start(
+                availableCameras[currentCameraIndex].id,
+                config,
+                onQRCodeScanned,
+                onScanError
+            );
+        } else {
+            // Fallback a facingMode si no hay lista de cámaras
+            await html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onQRCodeScanned,
+                onScanError
+            );
+        }
+
         isScanning = true;
+        updateFlipButtonText();
     } catch (error) {
         console.error('Error al iniciar cámara:', error);
-        
+
         let errorMsg = 'No se pudo acceder a la cámara. ';
         if (error.name === 'NotAllowedError') {
             errorMsg += 'Permiso denegado. Por favor permite el acceso a la cámara.';
@@ -97,7 +129,7 @@ async function startCamera() {
         } else {
             errorMsg += 'Usa entrada manual. Error: ' + error.message;
         }
-        
+
         alert(errorMsg);
         stopCamera();
     }
@@ -117,6 +149,72 @@ async function stopCamera() {
     cameraContainer.classList.add('hidden');
     startCameraBtn.classList.remove('hidden');
     isScanning = false;
+}
+
+// Girar cámara (frontal/trasera)
+async function flipCamera() {
+    console.log('flipCamera llamado, cámaras:', availableCameras.length);
+
+    if (!html5QrCode) {
+        alert('No hay instancia de cámara');
+        return;
+    }
+
+    if (availableCameras.length < 2) {
+        alert('Solo hay ' + availableCameras.length + ' cámara(s) disponible(s)');
+        return;
+    }
+
+    try {
+        // Detener cámara actual
+        if (isScanning) {
+            await html5QrCode.stop();
+            html5QrCode.clear();
+        }
+
+        // Cambiar al siguiente índice de cámara
+        currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+        console.log('Cambiando a cámara:', currentCameraIndex, availableCameras[currentCameraIndex]);
+
+        // Recrear instancia
+        html5QrCode = new Html5Qrcode("qrReader");
+
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        };
+
+        await html5QrCode.start(
+            availableCameras[currentCameraIndex].id,
+            config,
+            onQRCodeScanned,
+            onScanError
+        );
+
+        isScanning = true;
+        updateFlipButtonText();
+    } catch (error) {
+        console.error('Error al girar cámara:', error);
+        alert('Error al cambiar cámara: ' + error.message);
+    }
+}
+
+// Actualizar texto del botón de girar cámara
+function updateFlipButtonText() {
+    const flipBtn = document.getElementById('flipCameraBtn');
+    if (!flipBtn || availableCameras.length === 0) return;
+
+    const currentCam = availableCameras[currentCameraIndex];
+    const label = currentCam.label.toLowerCase();
+
+    if (label.includes('front') || label.includes('user') || label.includes('frontal')) {
+        flipBtn.textContent = '🔄 Usar Trasera';
+    } else if (label.includes('back') || label.includes('rear') || label.includes('trasera')) {
+        flipBtn.textContent = '🔄 Usar Frontal';
+    } else {
+        flipBtn.textContent = '🔄 Cambiar Cámara';
+    }
 }
 
 // Callback cuando se escanea un QR
@@ -377,6 +475,7 @@ function resetToScan() {
 // Event Listeners
 startCameraBtn.addEventListener('click', startCamera);
 stopCameraBtn.addEventListener('click', stopCamera);
+document.getElementById('flipCameraBtn')?.addEventListener('click', flipCamera);
 
 manualSubmitBtn.addEventListener('click', () => {
     let input = manualUrl.value.trim();
@@ -922,33 +1021,86 @@ async function executeImport(source) {
     }
 }
 
-// Parsear CSV: Nombre, Email, Empresa, Role
+// Parsear CSV: detecta formato automáticamente (Luma / simple)
 function parseCSV(csvText) {
     const lines = csvText.trim().split(/\r?\n/);
     if (lines.length === 0) return [];
 
     const attendees = [];
-    let startIndex = 0;
 
-    // Detectar si la primera línea es encabezado
-    const firstLine = lines[0].toLowerCase();
-    if (firstLine.includes('nombre') || firstLine.includes('email') || firstLine.includes('name')) {
-        startIndex = 1;
-    }
+    // Parsear primera línea como headers
+    const headerLine = lines[0];
+    const headers = parseCSVLine(headerLine).map(h => h.trim().toLowerCase());
 
-    for (let i = startIndex; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+    // Detectar formato Luma (tiene columnas específicas como guest_id, qr_code_url, etc.)
+    const isLumaFormat = headers.includes('guest_id') ||
+                         headers.includes('qr_code_url') ||
+                         headers.some(h => h.includes('linkedin') || h.includes('empresa') || h.includes('cargo'));
 
-        // Parsear CSV respetando comillas
-        const fields = parseCSVLine(line);
-        if (fields.length >= 1) {
+    if (isLumaFormat) {
+        // Mapeo de columnas Luma
+        const colMap = {
+            name: headers.indexOf('name'),
+            email: headers.indexOf('email'),
+            company: headers.findIndex(h => h.includes('empresa') || h.includes('company')),
+            role: headers.findIndex(h => h.includes('cargo') || h.includes('role') || h.includes('job')),
+            // Buscar columna de perfil de LinkedIn (no linkedin_click_id)
+            linkedin: headers.findIndex(h => h.includes('perfil') && h.includes('linkedin') || h === 'linkedin_profile')
+        };
+
+        // Si no hay columna 'name', buscar alternativas
+        if (colMap.name === -1) {
+            colMap.name = headers.indexOf('first_name');
+        }
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const fields = parseCSVLine(line);
+
+            // Obtener nombre (usar 'name' o combinar first_name + last_name)
+            let fullName = '';
+            if (headers.indexOf('name') !== -1) {
+                fullName = (fields[headers.indexOf('name')] || '').trim();
+            }
+            if (!fullName && headers.indexOf('first_name') !== -1) {
+                const firstName = (fields[headers.indexOf('first_name')] || '').trim();
+                const lastName = (fields[headers.indexOf('last_name')] || '').trim();
+                fullName = [firstName, lastName].filter(Boolean).join(' ');
+            }
+
+            if (!fullName) continue;
+
             attendees.push({
-                fullName: (fields[0] || '').trim(),
-                email: (fields[1] || '').trim(),
-                company: (fields[2] || '').trim(),
-                role: (fields[3] || '').trim()
+                fullName: fullName,
+                email: colMap.email !== -1 ? (fields[colMap.email] || '').trim() : '',
+                company: colMap.company !== -1 ? (fields[colMap.company] || '').trim() : '',
+                role: colMap.role !== -1 ? (fields[colMap.role] || '').trim() : '',
+                linkedin: colMap.linkedin !== -1 ? (fields[colMap.linkedin] || '').trim() : ''
             });
+        }
+    } else {
+        // Formato simple: Nombre, Email, Empresa, Role
+        let startIndex = 0;
+        const firstLine = lines[0].toLowerCase();
+        if (firstLine.includes('nombre') || firstLine.includes('email') || firstLine.includes('name')) {
+            startIndex = 1;
+        }
+
+        for (let i = startIndex; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const fields = parseCSVLine(line);
+            if (fields.length >= 1) {
+                attendees.push({
+                    fullName: (fields[0] || '').trim(),
+                    email: (fields[1] || '').trim(),
+                    company: (fields[2] || '').trim(),
+                    role: (fields[3] || '').trim()
+                });
+            }
         }
     }
 
@@ -1052,7 +1204,12 @@ function setupCSVPreview() {
 
             // Mostrar primeros 5 registros
             const previewRows = attendees.slice(0, 5);
-            let tableHTML = '<table class="report-table"><thead><tr><th>Nombre</th><th>Email</th><th>Empresa</th><th>Role</th></tr></thead><tbody>';
+            const hasLinkedIn = attendees.some(a => a.linkedin);
+            const colCount = hasLinkedIn ? 5 : 4;
+
+            let tableHTML = '<table class="report-table"><thead><tr><th>Nombre</th><th>Email</th><th>Empresa</th><th>Cargo</th>';
+            if (hasLinkedIn) tableHTML += '<th>LinkedIn</th>';
+            tableHTML += '</tr></thead><tbody>';
 
             for (const a of previewRows) {
                 tableHTML += '<tr>';
@@ -1060,11 +1217,15 @@ function setupCSVPreview() {
                 tableHTML += '<td>' + escapeHTML(a.email || '—') + '</td>';
                 tableHTML += '<td>' + escapeHTML(a.company || '—') + '</td>';
                 tableHTML += '<td>' + escapeHTML(a.role || '—') + '</td>';
+                if (hasLinkedIn) {
+                    const linkedInDisplay = a.linkedin ? '✓' : '—';
+                    tableHTML += '<td>' + linkedInDisplay + '</td>';
+                }
                 tableHTML += '</tr>';
             }
 
             if (attendees.length > 5) {
-                tableHTML += '<tr><td colspan="4" style="text-align:center;color:#666;">... y ' + (attendees.length - 5) + ' más</td></tr>';
+                tableHTML += '<tr><td colspan="' + colCount + '" style="text-align:center;color:#666;">... y ' + (attendees.length - 5) + ' más</td></tr>';
             }
 
             tableHTML += '</tbody></table>';
